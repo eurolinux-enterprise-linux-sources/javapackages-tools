@@ -1,6 +1,6 @@
 Name:           javapackages-tools
 Version:        3.4.1
-Release:        5%{?dist}
+Release:        6%{?dist}
 
 Summary:        Macros and scripts for Java packaging support
 
@@ -10,6 +10,9 @@ Source0:        https://fedorahosted.org/released/javapackages/javapackages-%{ve
 
 # rhbz 1038553
 Patch1:         0001-Support-absolute-symlinks-in-SCLs-in-mvn_file-rhbz-1.patch
+# rhbz 1098523 (two patches)
+Patch2:         0002-macros-Fix-add_maven_depmap-for-SCL-usage.patch
+Patch3:         0003-macros-Fix-xmvn-install-for-SCL-usage.patch
 
 BuildArch:      noarch
 
@@ -87,6 +90,8 @@ sed -i '/fedora-review/d' install
 sed -i 's:\(inst_exec target/mvn-local\).*:\1 ${javadir}-utils:' install
 
 %patch1 -p1
+%patch2 -p1
+%patch3 -p1
 
 %build
 %configure
@@ -128,6 +133,10 @@ rm -rf %{buildroot}/%{_datadir}/fedora-review/
 
 
 %changelog
+* Fri May 16 2014 Mikolaj Izdebski <mizdebsk@redhat.com> - 3.4.1-6
+- Fix add_maven_depmap and xmvn-install for SCL usage
+- Resolves: rhbz#1098523
+
 * Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.4.1-5
 - Mass rebuild 2013-12-27
 
