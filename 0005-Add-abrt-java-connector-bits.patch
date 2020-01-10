@@ -1,0 +1,183 @@
+From be3d32fe7a2b59f682e27022931a27fa552d052d Mon Sep 17 00:00:00 2001
+From: Jakub Filak <jfilak@redhat.com>
+Date: Tue, 17 Jun 2014 14:51:08 +0200
+Subject: [PATCH] Add abrt-java-connector bits
+
+Honor JAVACMD_OPTS with a path to the abrt connector agent when:
+  1. JAVA_ABRT environment variable does not hold 'off'
+  2. the connector's library exists
+  3. abrtd is running
+
+We have to use JAVACMD_OTPS variable instead of FLAGS and OPTIONS
+because applications (i.e. ant) migth use the following workflow:
+  . /usr/share/java-utils/java-functions
+  set_javacmd
+  $JAVACMD MyClass
+
+FLAGS and OPTIONS variables are used only from run() function.
+
+Use architecture-independent location of abrt-java-connector
+
+The connector's library has been moved to architecture-independent
+directory /usr/lib/abrt-java-connector/, because Java does not
+officially support multilib and having the connector installed the arch
+specific directory was causing us problems if Java package doesn't match
+host architecture (e.g. Java i386 on host x86_64).
+
+Signed-off-by: Jakub Filak <jfilak@redhat.com>
+
+Use wrapper script to inject extra JVM arguments (rhbz#1153652)
+
+Add JAVA_ABRT=off to java.conf template
+
+Log injecting ABRT agent
+---
+ build                     |  2 ++
+ configure                 |  6 ++++++
+ etc/java.conf             |  4 ++++
+ install                   |  1 +
+ java-utils/java-functions | 22 ++++++++++++++++++++--
+ java-utils/java-wrapper   |  8 ++++++++
+ 6 files changed, 41 insertions(+), 2 deletions(-)
+ create mode 100644 java-utils/java-wrapper
+
+diff --git a/build b/build
+index 23cbb90..4e974c0 100755
+--- a/build
++++ b/build
+@@ -61,7 +61,9 @@ expand()
+         -e "s|%{jvmdir}|${jvmdir}|" \
+         -e "s|%{m2home}|${m2home}|" \
+         -e "s|%{prefix}|${prefix}|" \
++        -e "s|%{rundir}|${rundir}|" \
+         -e "s|%{sysconfdir}|${sysconfdir}|" \
++        -e "s|%{abrtlibdir}|${abrtlibdir}|" \
+         "${1}" >"${target}"
+ }
+ 
+diff --git a/configure b/configure
+index 3288fda..4f22ceb 100755
+--- a/configure
++++ b/configure
+@@ -35,8 +35,10 @@ set -e
+ vars="
+ bindir
+ datadir
++localstatedir
+ mandir
+ prefix
++rundir
+ sysconfdir
+ rpmconfigdir
+ 
+@@ -58,6 +60,7 @@ jvmsysconfdir
+ mavendepmapdir
+ mavendepmapfragdir
+ mavenpomdir
++abrtlibdir
+ "
+ 
+ vars_re=$(echo $vars | sed 's/ /\\|/g')
+@@ -68,11 +71,14 @@ eval $(for _; do echo "$_"; done |
+ test -z "${prefix}" && prefix="/usr/local"
+ test -z "${bindir}" && bindir="${prefix}/bin"
+ test -z "${datadir}" && datadir="${prefix}/share"
++test -z "${localstatedir}" && localstatedir="${prefix}/var"
+ test -z "${mandir}" && mandir="${datadir}/man"
++test -z "${rundir}" && rundir="${localstatedir}/run"
+ test -z "${sysconfdir}" && sysconfdir="${prefix}/etc"
+ test -z "${rpmconfigdir}" && rpmconfigdir="${prefix}/lib/rpm"
+ 
+ test -z "${m2home}" && m2home="${datadir}/xmvn"
++test -z "${abrtlibdir}" && abrtlibdir="${prefix}/lib/abrt-java-connector"
+ 
+ eval $(sed -n 's/^%_\('"$vars_re"'\)\ *\(.*\)$/\1="\2"/;T;s/%{_\(.*}\)/${\1/;p' etc/macros.jpackage)
+ 
+diff --git a/etc/java.conf b/etc/java.conf
+index fa0a989..042e9ad 100644
+--- a/etc/java.conf
++++ b/etc/java.conf
+@@ -22,3 +22,7 @@ JVM_ROOT=%{jvmdir}
+ 
+ # Options to pass to the java interpreter
+ #JAVACMD_OPTS=
++
++# You can disable ABRT Java Connector by setting JAVA_ABRT to "off".
++# See: https://github.com/jfilak/abrt-java-connector/
++#JAVA_ABRT=off
+diff --git a/install b/install
+index d0b941a..33690ed 100755
+--- a/install
++++ b/install
+@@ -118,6 +118,7 @@ inst_config etc/font.properties "${javaconfdir}"
+ inst_config target/java.conf "${javaconfdir}"
+ 
+ inst_data target/java-functions "${javadir}-utils"
++inst_exec java-utils/java-wrapper "${javadir}-utils"
+ inst_data java-utils/maven_depmap.py "${javadir}-utils"
+ inst_data java-utils/pom_editor.sh "${javadir}-utils"
+ 
+diff --git a/java-utils/java-functions b/java-utils/java-functions
+index dc8aa1b..e9a763a 100644
+--- a/java-utils/java-functions
++++ b/java-utils/java-functions
+@@ -109,6 +109,14 @@ _load_java_conf()
+     if [ -n "${java_opts_save}" ]; then
+ 	JAVACMD_OPTS="${java_opts_save}"
+     fi
++
++    if [ "_${JAVA_ABRT}" != "_off" -a -f "%{abrtlibdir}/libabrt-java-connector.so" -a -f "%{rundir}/abrt/abrtd.pid" ]; then
++	_log "ABRT Java connector was enabled"
++	_log "Using ABRT Java agent: %{abrtlibdir}/libabrt-java-connector.so"
++	JAVACMD_OPTS="${JAVACMD_OPTS} -agentpath:%{abrtlibdir}/libabrt-java-connector.so=abrt=on"
++    else
++	_log "ABRT Java connector is disabled"
++    fi
+ }
+ 
+ 
+@@ -224,7 +232,12 @@ set_javacmd()
+ 	JAVACMD="${JAVA_HOME}/${cmd}"
+ 	if [ -x "${JAVACMD}" ]; then
+ 	    _log "Using configured JAVACMD: $JAVACMD"
+-	    JAVACMD="${JAVACMD}${JAVACMD_OPTS:+ }${JAVACMD_OPTS}"
++	    if [ -n "${JAVACMD_OPTS}" ]; then
++		_log "Using java-wrapper with extra options: ${JAVACMD_OPTS}"
++		export _JP_JAVACMD="${JAVACMD}"
++		export _JP_JAVACMD_OPTS="${JAVACMD_OPTS}"
++		JAVACMD="%{javadir}-utils/java-wrapper"
++	    fi
+ 	    return 0
+ 	fi
+     done
+@@ -232,7 +245,12 @@ set_javacmd()
+     JAVACMD=$(which java 2>/dev/null || :)
+     if [ -x "${JAVACMD}" ]; then
+ 	_log "Using JAVACMD from PATH: $JAVACMD"
+-	JAVACMD="${JAVACMD}${JAVACMD_OPTS:+ }${JAVACMD_OPTS}"
++	if [ -n "${JAVACMD_OPTS}" ]; then
++	    _log "Using java-wrapper with extra options: ${JAVACMD_OPTS}"
++	    export _JP_JAVACMD="${JAVACMD}"
++	    export _JP_JAVACMD_OPTS="${JAVACMD_OPTS}"
++	    JAVACMD="%{javadir}-utils/java-wrapper"
++	fi
+ 	return 0
+     fi
+ 
+diff --git a/java-utils/java-wrapper b/java-utils/java-wrapper
+new file mode 100644
+index 0000000..29b3143
+--- /dev/null
++++ b/java-utils/java-wrapper
+@@ -0,0 +1,8 @@
++#!/bin/sh
++
++JAVACMD="${_JP_JAVACMD}"
++JAVACMD_OPTS="${_JP_JAVACMD_OPTS}"
++unset _JP_JAVACMD
++unset _JP_JAVACMD_OPTS
++
++exec "${JAVACMD}" ${JAVACMD_OPTS} "${@}"
+-- 
+2.4.3
+

@@ -1,6 +1,6 @@
 Name:           javapackages-tools
 Version:        3.4.1
-Release:        1%{?dist}
+Release:        11%{?dist}
 
 Summary:        Macros and scripts for Java packaging support
 
@@ -8,6 +8,15 @@ License:        BSD
 URL:            https://fedorahosted.org/javapackages/
 Source0:        https://fedorahosted.org/released/javapackages/javapackages-%{version}.tar.xz
 
+# rhbz 1038553
+Patch1:         0001-Support-absolute-symlinks-in-SCLs-in-mvn_file-rhbz-1.patch
+# rhbz 1098523 (two patches)
+Patch2:         0002-macros-Fix-add_maven_depmap-for-SCL-usage.patch
+Patch3:         0003-macros-Fix-xmvn-install-for-SCL-usage.patch
+# rhbz 1220469
+Patch4:         0004-Fix-hardlink-creation.patch
+# rhbz 1117848
+Patch5:         0005-Add-abrt-java-connector-bits.patch
 
 BuildArch:      noarch
 
@@ -22,7 +31,7 @@ Requires:       coreutils
 Requires:       libxslt
 Requires:       lua
 Requires:       python
-Requires:       python-javapackages
+Requires:       python-javapackages = %{version}-%{release}
 
 Provides:       jpackage-utils = %{version}-%{release}
 Obsoletes:      jpackage-utils < %{version}-%{release}
@@ -82,6 +91,13 @@ packaging in Linux distributions
 %setup -q -n javapackages-%{version}
 
 sed -i '/fedora-review/d' install
+sed -i 's:\(inst_exec target/mvn-local\).*:\1 ${javadir}-utils:' install
+
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
 
 %build
 %configure
@@ -123,6 +139,36 @@ rm -rf %{buildroot}/%{_datadir}/fedora-review/
 
 
 %changelog
+* Wed Jun 24 2015 Michal Srb <msrb@redhat.com> - 3.4.1-11
+- Add support for abrt-java-connector
+- Resolves: rhbz#1117848
+
+* Tue May 12 2015 Mikolaj Izdebski <mizdebsk@redhat.com> - 3.4.1-10
+- Fix hardlink creation
+- Resolves: rhbz#1220469
+
+* Fri Jul 25 2014 Michal Srb <msrb@redhat.com> - 3.4.1-9
+- Bump release
+- Resolves: rhbz#1098523
+
+* Fri May 16 2014 Mikolaj Izdebski <mizdebsk@redhat.com> - 3.4.1-6
+- Fix add_maven_depmap and xmvn-install for SCL usage
+- Resolves: rhbz#1098523
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.4.1-5
+- Mass rebuild 2013-12-27
+
+* Mon Dec 16 2013 Stanislav Ochotnicky <sochotnicky@redhat.com> - 3.4.1-4
+- Support absolute symlinks in SCLs in mvn_file
+- Resolves: rhbz#1038553
+
+* Thu Dec 12 2013 Stanislav Ochotnicky <sochotnicky@redhat.com> - 3.4.1-3
+- Move mvn-local out of bindir
+- Resolves: rhbz#1015422
+
+* Thu Nov 14 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 3.4.1-2
+- Add versioned requires on python-javapackages
+
 * Wed Nov 06 2013 Stanislav Ochotnicky <sochotnicky@redhat.com> - 3.4.1-1
 - Rebase to bugfix release 3.4.1
 - Related: rhbz#1015158
