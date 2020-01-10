@@ -1,0 +1,112 @@
+#!/bin/sh
+# Copyright (c) 2013 Red Hat, Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name of Red Hat nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Authors: Mikolaj Izdebski <mizdebsk@redhat.com>
+
+set -e
+
+if ! test -f config.status; then
+    echo config.status does not exist. Run configure first. >&2
+    exit 1
+fi
+. ./config.status
+
+rm -rf target
+mkdir target
+
+manpage()
+{
+    echo Generating manpage for "${1}"...
+    asciidoc -b docbook -d manpage -o "target/${1}.xml" "man/${1}.txt"
+    (cd ./target && xmlto man --skip-validation "${1}.xml") 2>/dev/null
+}
+
+expand()
+{
+    local target=target/$(basename "${1}")
+
+    sed \
+        -e "s|%{bindir}|${bindir}|" \
+        -e "s|%{datadir}|${datadir}|" \
+        -e "s|%{javaconfdir}|${javaconfdir}|" \
+        -e "s|%{javadir}|${javadir}|" \
+        -e "s|%{jnidir}|${jnidir}|" \
+        -e "s|%{jvmdir}|${jvmdir}|" \
+        -e "s|%{m2home}|${m2home}|" \
+        -e "s|%{prefix}|${prefix}|" \
+        -e "s|%{sysconfdir}|${sysconfdir}|" \
+        "${1}" >"${target}"
+}
+
+expand bin/abs2rel
+expand bin/build-classpath
+expand bin/build-classpath-directory
+expand bin/build-jar-repository
+expand bin/check-binary-files
+expand bin/clean-binary-files
+expand bin/create-jar-links
+expand bin/diff-jars
+expand bin/find-jar
+expand bin/jvmjar
+expand bin/mvn-local
+expand bin/mvn-rpmbuild
+expand bin/rebuild-jar-repository
+expand bin/xmvn-builddep
+expand etc/java.conf
+expand etc/macros.jpackage
+expand etc/macros.fjava
+expand etc/macros.xmvn
+expand java-utils/java-functions
+
+manpage abs2rel
+manpage find-jar
+manpage mvn_alias
+manpage mvn_artifact
+manpage mvn_build
+manpage mvn_config
+manpage mvn_compat_version
+manpage mvn_file
+manpage mvn_install
+manpage mvn_package
+manpage pom_add_dep
+manpage pom_add_parent
+manpage pom_add_plugin
+manpage pom_disable_module
+manpage pom_remove_dep
+manpage pom_remove_parent
+manpage pom_remove_plugin
+manpage pom_set_parent
+manpage pom_xpath_inject
+manpage pom_xpath_remove
+manpage pom_xpath_replace
+manpage pom_xpath_set
+manpage build-classpath
+manpage build-jar-repository
+manpage rebuild-jar-repository

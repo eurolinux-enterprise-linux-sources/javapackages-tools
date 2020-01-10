@@ -1,0 +1,5 @@
+Handling of compatibility packages, versioned jars etc.
+
+WORK IN PROGRESS
+mizdebsk, 31 Oct 2013
+

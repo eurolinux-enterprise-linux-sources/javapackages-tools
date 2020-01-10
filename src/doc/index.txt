@@ -1,0 +1,85 @@
+Java Packaging HOWTO
+====================
+
+v1.0, 2013-05-03
+
+include::preamble.txt[]
+
+:numbered!:
+[abstract]
+== Abstract
+This document aims to help developers create and maintain Java packages in
+Fedora. It *does not* supersede or replace
+link:https://fedoraproject.org/wiki/Packaging:Java[Java Packaging Guidelines],
+but rather aims to document tools and techniques used for packaging Java
+software on Fedora.
+
+
+:numbered:
+== Introduction
+include::introduction.txt[]
+
+== Java Specifics in Fedora for Users and Developers
+include::fedora_java_specifics.txt[]
+
+== Java Specifics in Fedora for Packagers
+include::fedora_java_packaging_specifics.txt[]
+
+== Packaging Best Practices
+include::packaging_best_practices.txt[]
+
+== Generic Java Builds
+include::generic_java_build.txt[]
+
+== Ant
+include::ant.txt[]
+
+== Maven
+include::maven.txt[]
+
+== Common Errors
+include::common_errors.txt[]
+
+== Integration of Maven and XMvn Tools
+include::integration_maven_xmvn.txt[]
+
+
+[appendix]
+== Appendix
+Ideally include manpages for mvn_ and pom_ macros here
+
+[bibliography]
+References
+----------
+
+[bibliography]
+- [[[guidelines]]] https://fedoraproject.org/wiki/Packaging:Java
+- [[[walsh-muellner]]] Norman Walsh & Leonard Muellner.
+  'DocBook - The Definitive Guide'. O'Reilly & Associates. 1999.
+  ISBN 1-56592-580-7.
+
+
+[glossary]
+Glossary
+--------
+Glossaries are optional. Glossaries entries are an example of a style
+of AsciiDoc labeled lists.
+
+[glossary]
+[[Xdepmap]]depmap::
+  Depmap is a special file telling Maven relationships between
+  groupId,artifactId and JAR file on the filesystem
+
+A second glossary term::
+  The corresponding (indented) definition.
+
+
+ifdef::backend-docbook[]
+[index]
+Example Index
+-------------
+////////////////////////////////////////////////////////////////
+The index is normally left completely empty, it's contents being
+generated automatically by the DocBook toolchain.
+////////////////////////////////////////////////////////////////
+endif::backend-docbook[]
