@@ -1,6 +1,6 @@
 Name:           javapackages-tools
 Version:        3.4.1
-Release:        11%{?dist}
+Release:        5%{?dist}
 
 Summary:        Macros and scripts for Java packaging support
 
@@ -10,13 +10,6 @@ Source0:        https://fedorahosted.org/released/javapackages/javapackages-%{ve
 
 # rhbz 1038553
 Patch1:         0001-Support-absolute-symlinks-in-SCLs-in-mvn_file-rhbz-1.patch
-# rhbz 1098523 (two patches)
-Patch2:         0002-macros-Fix-add_maven_depmap-for-SCL-usage.patch
-Patch3:         0003-macros-Fix-xmvn-install-for-SCL-usage.patch
-# rhbz 1220469
-Patch4:         0004-Fix-hardlink-creation.patch
-# rhbz 1117848
-Patch5:         0005-Add-abrt-java-connector-bits.patch
 
 BuildArch:      noarch
 
@@ -94,10 +87,6 @@ sed -i '/fedora-review/d' install
 sed -i 's:\(inst_exec target/mvn-local\).*:\1 ${javadir}-utils:' install
 
 %patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
-%patch5 -p1
 
 %build
 %configure
@@ -139,22 +128,6 @@ rm -rf %{buildroot}/%{_datadir}/fedora-review/
 
 
 %changelog
-* Wed Jun 24 2015 Michal Srb <msrb@redhat.com> - 3.4.1-11
-- Add support for abrt-java-connector
-- Resolves: rhbz#1117848
-
-* Tue May 12 2015 Mikolaj Izdebski <mizdebsk@redhat.com> - 3.4.1-10
-- Fix hardlink creation
-- Resolves: rhbz#1220469
-
-* Fri Jul 25 2014 Michal Srb <msrb@redhat.com> - 3.4.1-9
-- Bump release
-- Resolves: rhbz#1098523
-
-* Fri May 16 2014 Mikolaj Izdebski <mizdebsk@redhat.com> - 3.4.1-6
-- Fix add_maven_depmap and xmvn-install for SCL usage
-- Resolves: rhbz#1098523
-
 * Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.4.1-5
 - Mass rebuild 2013-12-27
 
